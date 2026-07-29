@@ -4,6 +4,3 @@
 [submodule "metadata-server"]
 	path = metadata-server
 	url = https://github.com/project-race-of-words/metadata-server
-[submodule "words-server"]
-	path = words-server
-	url = https://github.com/project-race-of-words/words-server

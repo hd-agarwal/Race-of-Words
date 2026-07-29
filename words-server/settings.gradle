@@ -1,9 +1,0 @@
-pluginManagement {
-    repositories {
-        gradlePluginPortal()
-        // Adds the repository so the imflog plugin can download io.confluent artifacts
-        maven { url = "https://packages.confluent.io/maven/" }
-    }
-}
-
-rootProject.name = 'wordsServer'
