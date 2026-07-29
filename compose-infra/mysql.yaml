@@ -1,10 +1,17 @@
 services:
   mysql:
     image: mysql:lts-oraclelinux9
-    # ports:
-    #   - ${PORT_MYSQL}:${PORT_MYSQL_INTERNAL}
     ports:
-      - 10309:3306
+      - ${PORT_MYSQL}:${PORT_MYSQL_INTERNAL}
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: somethingstrong
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_WORDS_DB_NAME}
+      MYSQL_USER: ${MYSQL_WORDS_SERVER_USER}
+      MYSQL_PASSWORD: ${MYSQL_WORDS_SERVER_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql-init-files:/docker-entrypoint-initdb.d
+
+volumes:
+  mysql-data:

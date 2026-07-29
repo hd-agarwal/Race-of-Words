@@ -1,6 +1,7 @@
 include:
   - path: ./compose-infra/mongo.yaml
   - path: ./compose-infra/kafka.yaml
+  - path: ./compose-infra/mysql.yaml
 
 services:
   metadata-server:
