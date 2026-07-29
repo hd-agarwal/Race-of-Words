@@ -1,0 +1,27 @@
+# Exclude local build artifacts and compiler files
+out/
+bin/
+
+# Exclude local caching files
+.gradle/
+
+# Exclude secrets and local configuration files
+.env-*
+
+# Exclude IDE metadata directories
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+
+# Exclude Git files
+.git
+.gitignore
+.gitattributes
+
+# Exclude documentation files and scripts
+*.bat
+HELP.md
+README.md

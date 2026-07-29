@@ -1,0 +1,79 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.0'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'com.github.davidmc24.gradle.plugin.avro' version '1.9.1'
+    id 'com.github.imflog.kafka-schema-registry-gradle-plugin' version '2.5.0'
+}
+
+group = 'org.example'
+version = '0.0.1-SNAPSHOT'
+description = 'RoW'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url = "https://packages.confluent.io/maven/"
+    }
+}
+
+def envFile = file(".env")
+if (envFile.exists()) {
+    envFile.readLines().each { line ->
+        // Ignore comments and empty lines
+        if (line.trim() && !line.startsWith("#") && line.contains("=")) {
+            def (key, value) = line.tokenize("=")
+            // Strip quotes if present
+            value = value.replaceAll("^['\"]|['\"]\$", "").trim()
+            project.ext.set(key.trim(), value)
+        }
+    }
+}
+
+schemaRegistry {
+    url = project.hasProperty("SCHEMA_REGISTRY_URL") ? project.property("SCHEMA_REGISTRY_URL") : "http://localhost:8081"
+    download {
+        subject("words_data-value", "src/main/avro")
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    compileOnly 'org.projectlombok:lombok'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testCompileOnly 'org.projectlombok:lombok'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    implementation 'io.github.cdimascio:java-dotenv:5.2.2'
+
+    implementation 'org.springframework.boot:spring-boot-starter-kafka:4.1.0'
+    implementation 'io.confluent:kafka-avro-serializer:8.3.0'
+    implementation 'org.apache.avro:avro:1.12.1'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.named('downloadSchemasTask') {
+    outputs.upToDateWhen { false }
+}
+
+tasks.named('generateAvroJava') {
+    dependsOn 'downloadSchemasTask'
+}
+
+tasks.named('generateAvroProtocol') {
+    dependsOn 'downloadSchemasTask'
+}
