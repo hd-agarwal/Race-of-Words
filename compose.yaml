@@ -81,35 +81,10 @@ services:
       - "${PORT_WORDS_SERVER}:${PORT_WORDS_SERVER_INTERNAL}"
     environment:
       - SERVER_PORT=${PORT_WORDS_SERVER_INTERNAL}
-      - MYSQL_URL=jdbc:mysql://${MYSQL_DATASOURCE_HOST}:${PORT_MYSQL_DB_INTERNAL}/${MYSQL_DB_WORDS_DB_NAME}
+      - MYSQL_URL=jdbc:mysql://mysql:${PORT_MYSQL_INTERNAL}/${MYSQL_WORDS_DB_NAME}
     volumes:
-      - ./metadata-server/.env:/app/.env
-      - ./metadata-server/docker-logs:/app/logs
-    depends_on:
-      mongo1: 
-        condition: service_healthy
-      mongo2:
-        condition: service_healthy
-      mongo3:
-        condition: service_healthy
-    develop:
-      watch:
-        - path: ./metadata-server/build.gradle
-          action: rebuild
-        
-        - path: ./metadata-server/.env
-          action: rebuild
-
-        - path: ./metadata-server/build/classes/java/main
-          action: rebuild
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:${PORT_METADATA_SERVER_INTERNAL}/health-check | grep -i up || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 50
-      start_period: 40s
-#  mongodb-data:
-#  mongodb-log:
+      - ./words-server/.env:/app/.env
+      - ./words-server/docker-logs:/app/logs
 
 
 # Older version of this compose: trying out mongodb
