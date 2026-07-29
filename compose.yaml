@@ -75,7 +75,7 @@ services:
           action: sync+restart
   words-server:
     build:
-      context: wordsServer
+      context: words-server
       dockerfile: Dockerfile
       network: host
     ports:
@@ -83,33 +83,36 @@ services:
     environment:
       - SERVER_PORT=${PORT_WORDS_SERVER_INTERNAL}
       - MYSQL_URL=jdbc:mysql://mysql:${PORT_MYSQL_INTERNAL}/${MYSQL_WORDS_DB_NAME}
+      - SCHEMA_REGISTRY_URL=http://schema-registry:${PORT_SCHEMA_REGISTRY_INTERNAL}
+      - MYSQL_DATASOURCE_USERNAME=${MYSQL_WORDS_SERVER_USER}
+      - MYSQL_DATASOURCE_PASSWORD=${MYSQL_WORDS_SERVER_PASSWORD}
+      - KAFKA_BOOTSTRAP_SERVERS=broker:29092
+      - KAFKA_TOPIC=${KAFKA_TOPIC}
     volumes:
       - ./words-server/.env:/app/.env
       - ./words-server/docker-logs:/app/logs
+    depends_on:
+      mysql: 
+        condition: service_healthy
+      broker:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      metadata-server:
+        condition: service_healthy
+    develop:
+      watch:
+        - path: ./metadata-server/build.gradle
+          action: rebuild
+        
+        - path: ./metadata-server/.env
+          action: rebuild
 
-
-# Older version of this compose: trying out mongodb
-#  mongodb:
-#    image: mongo:8.0.11
-#    container_name: mongodb
-#    hostname: mongodb
-#    volumes:
-#      - mongodb-data:/data/db/
-#      - mongodb-log:/var/log/mongodb/
-#      - ./mongodb/db-entrypoint.sh:/docker-entrypoint-initdb.d/db-entrypoint.sh
-#    env_file:
-#      - .env
-#    environment:
-#      MONGO_INITDB_ROOT_USERNAME: ${MONGO_DB_ROOT_USER}
-#      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_DB_ROOT_PASS}
-#      DB_PORT: ${DB_PORT}
-#      MONGO_DB_METADATA_DB_NAME: ${MONGO_DB_METADATA_DB_NAME}
-#      MONGO_DB_METADATA_SERVER_USER: ${MONGO_DB_METADATA_SERVER_USER}
-#      MONGO_DB_METADATA_SERVER_PASSWORD: ${MONGO_DB_METADATA_SERVER_PASSWORD}
-#    ports:
-#      - 10301:${DB_PORT}
-#    healthcheck:
-#      test: echo 'db.runCommand("ping").ok' | mongosh mongodb://${MONGO_DB_METADATA_SERVER_USER}:${MONGO_DB_METADATA_SERVER_PASSWORD}@localhost:${DB_PORT}/?authSource=${MONGO_DB_METADATA_DB_NAME} --quiet
-#      interval: 30s
-#      timeout: 10s
-#      retries: 5
+        - path: ./metadata-server/build/classes/java/main
+          action: rebuild
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${PORT_WORDS_SERVER_INTERNAL}/health-check | grep -i up || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 50
+      start_period: 40s
