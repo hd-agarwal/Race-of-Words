@@ -1,0 +1,10 @@
+services:
+  mysql:
+    image: mysql:lts-oraclelinux9
+    # ports:
+    #   - ${PORT_MYSQL}:${PORT_MYSQL_INTERNAL}
+    ports:
+      - 10309:3306
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: somethingstrong

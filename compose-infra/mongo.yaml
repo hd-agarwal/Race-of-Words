@@ -1,0 +1,112 @@
+services:
+  mongo1:
+    image: mongo:8.0.11
+    command: mongod --replSet rs0 --bind_ip_all
+    ports:
+      - ${PORT_MONGO_DB_PRIMARY}:${PORT_MONGO_DB_PRIMARY_INTERNAL}
+    volumes:
+      - "mongo1_data:/data/db"
+    healthcheck:
+      test: mongosh --port ${PORT_MONGO_DB_PRIMARY_INTERNAL} --eval "db.hello()" --quiet
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 2s
+  mongo2:
+    image: mongo:8.0.11
+    command: mongod --replSet rs0 --bind_ip_all
+    ports:
+      - ${PORT_MONGO_DB_SECONDARY_1}:${PORT_MONGO_DB_SECONDARY_1_INTERNAL}
+    volumes:
+      - "mongo2_data:/data/db"
+    healthcheck:
+      test: mongosh --port ${PORT_MONGO_DB_SECONDARY_1_INTERNAL} --eval "db.hello()" --quiet
+      interval: 31s
+      timeout: 5s
+      retries: 10
+      start_period: 2s
+  mongo3:
+    image: mongo:8.0.11
+    command: mongod --replSet rs0 --bind_ip_all
+    ports:
+      - ${PORT_MONGO_DB_SECONDARY_2}:${PORT_MONGO_DB_SECONDARY_2_INTERNAL}
+    volumes:
+      - "mongo3_data:/data/db"
+    healthcheck:
+      test: mongosh --port ${PORT_MONGO_DB_SECONDARY_2_INTERNAL} --eval "db.hello()" --quiet
+      interval: 32s
+      timeout: 5s
+      retries: 10
+      start_period: 2s
+  mongo-init:
+    image: mongo:8.0.11
+    depends_on:
+      mongo1:
+        condition: service_healthy
+      mongo2:
+        condition: service_healthy
+      mongo3:
+        condition: service_healthy
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: >
+      "
+       mongosh --host mongo1 --port ${PORT_MONGO_DB_PRIMARY_INTERNAL} --eval \"
+         rs.initiate({
+           _id: 'rs0',
+           members: [
+             {_id: 0, host: 'mongo1:${PORT_MONGO_DB_PRIMARY_INTERNAL}', priority: 2},
+             {_id: 1, host: 'mongo2:${PORT_MONGO_DB_SECONDARY_1_INTERNAL}', priority: 1},
+             {_id: 2, host: 'mongo3:${PORT_MONGO_DB_SECONDARY_2_INTERNAL}', priority: 1}
+           ]
+         })
+       \" &&
+       echo \"Waiting for primary election...\" &&
+       mongosh --host mongo1 --port ${PORT_MONGO_DB_PRIMARY_INTERNAL} --eval \"
+         while (!db.hello().isWritablePrimary) { 
+           sleep(500); 
+         }
+       \" &&
+       echo \"Primary elected! Creating users...\" &&
+       mongosh --host mongo1 --port ${PORT_MONGO_DB_PRIMARY_INTERNAL} --eval \"
+         db = db.getSiblingDB('admin');
+         db.createUser({
+           user: '${MONGO_DB_ROOT_USER}',
+           pwd: '${MONGO_DB_ROOT_PASS}',
+           roles: [
+             { role: 'root', db: 'admin' }
+           ]
+         });
+         db = db.getSiblingDB('${MONGO_DB_METADATA_DB_NAME}');
+         db.createUser({
+           user: '${MONGO_DB_METADATA_SERVER_USER}',
+           pwd: '${MONGO_DB_METADATA_SERVER_PASSWORD}',
+           roles: [
+             { role: 'readWrite', db: '${MONGO_DB_METADATA_DB_NAME}' }
+           ]
+         });
+       \" &&
+       echo \"created\""
+       
+
+  mongo-express:
+    image: mongo-express:1.0.2-20-alpine3.19
+    restart: always
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_DB_ROOT_USER}:${MONGO_DB_ROOT_PASS}@mongo1:${PORT_MONGO_DB_PRIMARY_INTERNAL},mongo2:${PORT_MONGO_DB_SECONDARY_1_INTERNAL},mongo3:${PORT_MONGO_DB_SECONDARY_2_INTERNAL}/admin?authSource=admin
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
+    ports:
+      - ${PORT_MONGO_EXPRESS}:${PORT_MONGO_EXPRESS_INTERNAL}
+    depends_on:
+      mongo1: 
+        condition: service_healthy
+      mongo2:
+        condition: service_healthy
+      mongo3:
+        condition: service_healthy
+
+volumes:
+
+  mongo1_data:
+  mongo2_data:
+  mongo3_data:

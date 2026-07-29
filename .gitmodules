@@ -1,0 +1,9 @@
+[submodule "dataset-generation"]
+	path = dataset-generation
+	url = https://github.com/project-race-of-words/dataset-generation
+[submodule "metadata-server"]
+	path = metadata-server
+	url = https://github.com/project-race-of-words/metadata-server
+[submodule "wordsServer"]
+	path = wordsServer
+	url = https://github.com/project-race-of-words/words-server

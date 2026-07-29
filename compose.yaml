@@ -1,0 +1,138 @@
+include:
+  - path: ./compose-infra/mongo.yaml
+  - path: ./compose-infra/kafka.yaml
+
+services:
+  metadata-server:
+    build:
+      context: metadata-server
+      dockerfile: Dockerfile
+      network: host
+    ports:
+      - "${PORT_METADATA_SERVER}:${PORT_METADATA_SERVER_INTERNAL}"
+    environment:
+      - SERVER_PORT=${PORT_METADATA_SERVER_INTERNAL}
+      - MONGO_DB_URI=mongodb://mongo1:${PORT_MONGO_DB_PRIMARY_INTERNAL},mongo2:${PORT_MONGO_DB_SECONDARY_1_INTERNAL},mongo3:${PORT_MONGO_DB_SECONDARY_2_INTERNAL}/${MONGO_DB_METADATA_DB_NAME}
+    volumes:
+      - ./metadata-server/.env:/app/.env
+      - ./metadata-server/docker-logs:/app/logs
+    depends_on:
+      mongo1: 
+        condition: service_healthy
+      mongo2:
+        condition: service_healthy
+      mongo3:
+        condition: service_healthy
+    develop:
+      watch:
+        - path: ./metadata-server/build.gradle
+          action: rebuild
+        
+        - path: ./metadata-server/.env
+          action: rebuild
+
+        - path: ./metadata-server/build/classes/java/main
+          action: rebuild
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${PORT_METADATA_SERVER_INTERNAL}/health-check | grep -i up || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 50
+      start_period: 40s
+  
+  python-data-generator:
+    build:
+      context: dataset-generation
+      dockerfile: Dockerfile
+      network: host
+    environment:
+      - METADATA_SERVER_URL=http://metadata-server:${PORT_METADATA_SERVER_INTERNAL}
+      - SCHEMA_REGISTRY_URL=http://schema-registry:${PORT_SCHEMA_REGISTRY_INTERNAL}
+      - KAFKA_URL=broker:29092
+    volumes:
+      - ./dataset-generation/.env:/app/.env
+      - ./dataset-generation/docker-logs:/app/logs
+      - ./dataset-generation/pythonScriptConfig.json:/app/pythonScriptConfig.json
+    depends_on:
+      metadata-server:
+        condition: service_healthy
+      broker:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    develop:
+      watch:
+        - path: ./dataset-generation/main.py
+          target: /app/main.py
+          action: sync+restart
+        - path: ./dataset-generation/helpers
+          target: /app/helpers
+          action: sync+restart
+        - path: ./dataset-generation/resources
+          target: /app/resources
+          action: sync+restart
+  words-server:
+    build:
+      context: wordsServer
+      dockerfile: Dockerfile
+      network: host
+    ports:
+      - "${PORT_WORDS_SERVER}:${PORT_WORDS_SERVER_INTERNAL}"
+    environment:
+      - SERVER_PORT=${PORT_WORDS_SERVER_INTERNAL}
+      - MYSQL_URL=jdbc:mysql://${MYSQL_DATASOURCE_HOST}:${PORT_MYSQL_DB_INTERNAL}/${MYSQL_DB_WORDS_DB_NAME}
+    volumes:
+      - ./metadata-server/.env:/app/.env
+      - ./metadata-server/docker-logs:/app/logs
+    depends_on:
+      mongo1: 
+        condition: service_healthy
+      mongo2:
+        condition: service_healthy
+      mongo3:
+        condition: service_healthy
+    develop:
+      watch:
+        - path: ./metadata-server/build.gradle
+          action: rebuild
+        
+        - path: ./metadata-server/.env
+          action: rebuild
+
+        - path: ./metadata-server/build/classes/java/main
+          action: rebuild
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${PORT_METADATA_SERVER_INTERNAL}/health-check | grep -i up || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 50
+      start_period: 40s
+#  mongodb-data:
+#  mongodb-log:
+
+
+# Older version of this compose: trying out mongodb
+#  mongodb:
+#    image: mongo:8.0.11
+#    container_name: mongodb
+#    hostname: mongodb
+#    volumes:
+#      - mongodb-data:/data/db/
+#      - mongodb-log:/var/log/mongodb/
+#      - ./mongodb/db-entrypoint.sh:/docker-entrypoint-initdb.d/db-entrypoint.sh
+#    env_file:
+#      - .env
+#    environment:
+#      MONGO_INITDB_ROOT_USERNAME: ${MONGO_DB_ROOT_USER}
+#      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_DB_ROOT_PASS}
+#      DB_PORT: ${DB_PORT}
+#      MONGO_DB_METADATA_DB_NAME: ${MONGO_DB_METADATA_DB_NAME}
+#      MONGO_DB_METADATA_SERVER_USER: ${MONGO_DB_METADATA_SERVER_USER}
+#      MONGO_DB_METADATA_SERVER_PASSWORD: ${MONGO_DB_METADATA_SERVER_PASSWORD}
+#    ports:
+#      - 10301:${DB_PORT}
+#    healthcheck:
+#      test: echo 'db.runCommand("ping").ok' | mongosh mongodb://${MONGO_DB_METADATA_SERVER_USER}:${MONGO_DB_METADATA_SERVER_PASSWORD}@localhost:${DB_PORT}/?authSource=${MONGO_DB_METADATA_DB_NAME} --quiet
+#      interval: 30s
+#      timeout: 10s
+#      retries: 5
