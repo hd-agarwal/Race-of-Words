@@ -50,6 +50,7 @@ services:
       - METADATA_SERVER_URL=http://metadata-server:${PORT_METADATA_SERVER_INTERNAL}
       - SCHEMA_REGISTRY_URL=http://schema-registry:${PORT_SCHEMA_REGISTRY_INTERNAL}
       - KAFKA_URL=broker:29092
+      - KAFKA_TOPIC=${KAFKA_TOPIC}
     volumes:
       - ./dataset-generation/.env:/app/.env
       - ./dataset-generation/docker-logs:/app/logs
