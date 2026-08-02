@@ -27,6 +27,24 @@ services:
       interval: 20s
       retries: 5
       timeout: 10s
+  
+  topic-initializer:
+    image: confluentinc/cp-kafka:8.2.2
+    depends_on:
+      broker:
+        condition: service_healthy
+    entrypoint: >
+      sh -c '
+        echo "Creating Kafka topic..."
+        kafka-topics --create \
+          --bootstrap-server broker:29092 \
+          --topic ${KAFKA_TOPIC} \
+          --partitions 1 \
+          --replication-factor 1 \
+          --config cleanup.policy=delete \
+          --config retention.ms=1800000 \
+          --if-not-exists
+      '
 
   schema-registry:
     image: confluentinc/cp-schema-registry:8.2.2
@@ -45,6 +63,39 @@ services:
       interval: 20s
       timeout: 10s
       retries: 10
+
+  schema-initializer:
+    image: curlimages/curl:8.21.0
+    depends_on:
+      schema-registry:
+        condition: service_healthy
+    volumes:
+      - ../dataset-generation/resources:/schemas
+    entrypoint: >
+      sh -c '
+        echo "Waiting for Schema Registry..." &&
+        until curl -s http://schema-registry:${PORT_SCHEMA_REGISTRY_INTERNAL}/subjects; do
+          sleep 2;
+        done &&
+        
+        echo "=== AVSC file ===" &&
+        cat /schemas/dataset_message.avsc &&
+        echo "" &&
+        
+        ESCAPED_SCHEMA=$$(awk "{print}" ORS="" /schemas/dataset_message.avsc | tr -d "\n\t" | sed "s/\"/\\\\\"/g") &&
+        
+        echo "=== final JSON payload ===" &&
+        PAYLOAD="{\"schema\":\"$$ESCAPED_SCHEMA\"}" &&
+        echo "$$PAYLOAD" &&
+        echo "" &&
+
+        echo "=== Registering schema via REST API ===" &&
+        curl -X POST \
+          -H "Content-Type: application/vnd.schemaregistry.v1+json" \
+          -d "$$PAYLOAD" \
+          http://schema-registry:${PORT_SCHEMA_REGISTRY_INTERNAL}/subjects/${KAFKA_TOPIC}-value/versions
+        echo ""
+      '
 
   kafka-ui:
     image: kafbat/kafka-ui:v1.5.0

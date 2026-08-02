@@ -1,0 +1,10 @@
+services:
+  init-barrier:
+    image: alpine:latest
+    container_name: init-barrier
+    depends_on:
+      schema-initializer:
+        condition: service_completed_successfully
+      topic-initializer:
+        condition: service_completed_successfully
+    entrypoint: ["echo", "Required Infra ready!"]
