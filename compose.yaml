@@ -79,6 +79,8 @@ services:
     build:
       context: words-server
       dockerfile: Dockerfile
+      args:
+        SCHEMA_REGISTRY_URL: http://localhost:${PORT_SCHEMA_REGISTRY}
       network: host
     ports:
       - "${PORT_WORDS_SERVER}:${PORT_WORDS_SERVER_INTERNAL}"
