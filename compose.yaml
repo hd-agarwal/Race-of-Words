@@ -2,6 +2,7 @@ include:
   - path: ./compose-infra/mongo.yaml
   - path: ./compose-infra/kafka.yaml
   - path: ./compose-infra/mysql.yaml
+  - path: ./compose-infra/redis.yaml
   - path: ./compose-infra/infra.yaml
 
 services:
@@ -92,6 +93,8 @@ services:
       - MYSQL_DATASOURCE_PASSWORD=${MYSQL_WORDS_SERVER_PASSWORD}
       - KAFKA_BOOTSTRAP_SERVERS=broker:29092
       - KAFKA_TOPIC=${KAFKA_TOPIC}
+      - REDIS_HOST=redis
+      - REDIS_PORT=${PORT_REDIS_INTERNAL}
     volumes:
       - ./words-server/.env:/app/.env
       - ./words-server/docker-logs:/app/logs
@@ -103,6 +106,8 @@ services:
       schema-registry:
         condition: service_healthy
       metadata-server:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     develop:
       watch:
