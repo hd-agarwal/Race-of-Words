@@ -36,14 +36,7 @@ CREATE TABLE IF NOT EXISTS nodes
   PRIMARY KEY (`id`)
 );
 
-DELETE FROM nodes;
-
-INSERT INTO nodes (
-    value,
-    is_root,
-    is_terminal
-) VALUES (
-    '\0',
-    true,
-    false
-);
+INSERT INTO nodes (value, is_root, is_terminal)
+SELECT '\0', true, false
+FROM DUAL
+WHERE (SELECT COUNT(*) FROM nodes) = 0; 
