@@ -1,10 +1,43 @@
 services:
-  init-barrier:
+  init-infra:
     image: alpine:latest
-    container_name: init-barrier
     depends_on:
+      broker:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
       schema-initializer:
         condition: service_completed_successfully
       topic-initializer:
         condition: service_completed_successfully
+      mongo1:
+        condition: service_healthy
+      mongo2:
+        condition: service_healthy
+      mongo3:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     entrypoint: ["echo", "Required Infra ready!"]
+  
+  init-app-services:
+    image: alpine:latest
+    depends_on:
+      metadata-server:
+        condition: service_healthy
+      python-data-generator:
+        condition: service_started
+      words-server:
+        condition: service_healthy
+  
+  init-debug-ui:
+    image: alpine:latest
+    depends_on:
+      kafka-ui:
+        condition: service_started
+      mongo-express:
+        condition: service_started
