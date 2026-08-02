@@ -111,13 +111,13 @@ services:
         condition: service_healthy
     develop:
       watch:
-        - path: ./metadata-server/build.gradle
+        - path: ./words-server/build.gradle
           action: rebuild
         
-        - path: ./metadata-server/.env
+        - path: ./words-server/.env
           action: rebuild
 
-        - path: ./metadata-server/build/classes/java/main
+        - path: ./words-server/build/classes/java/main
           action: rebuild
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:${PORT_WORDS_SERVER_INTERNAL}/health-check | grep -i up || exit 1"]
