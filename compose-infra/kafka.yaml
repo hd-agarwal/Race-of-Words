@@ -48,7 +48,6 @@ services:
 
   schema-registry:
     image: confluentinc/cp-schema-registry:8.2.2
-    container_name: schema-registry
     depends_on:
       broker:
         condition: service_healthy
