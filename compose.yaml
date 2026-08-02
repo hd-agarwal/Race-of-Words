@@ -73,6 +73,7 @@ services:
         - path: ./dataset-generation/resources
           target: /app/resources
           action: sync+restart
+  
   words-server:
     build:
       context: words-server
