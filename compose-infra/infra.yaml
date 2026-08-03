@@ -56,3 +56,5 @@ services:
         condition: service_started
       mongo-express:
         condition: service_started
+      redis-ui:
+        condition: service_healthy

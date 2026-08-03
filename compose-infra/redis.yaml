@@ -17,6 +17,26 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
+  
+  redis-ui:
+    image: redis/redisinsight:3.8
+    ports:
+      - ${PORT_REDIS_INSIGHTS}:${PORT_REDIS_INSIGHTS_INTERNAL}
+    environment:
+      RI_REDIS_HOST: redis
+      RI_REDIS_PORT: ${PORT_REDIS_INTERNAL}
+      RI_APP_PORT: ${PORT_REDIS_INSIGHTS_INTERNAL}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${PORT_REDIS_INSIGHTS_INTERNAL}/api/health | grep -i up || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 50
+      start_period: 40s
 
 volumes:
   redis-data:
