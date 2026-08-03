@@ -35,7 +35,7 @@ services:
         condition: service_healthy
     entrypoint: >
       sh -c '
-        echo "Creating Kafka topic..."
+        echo "Creating Kafka topic..." &&
         kafka-topics --create \
           --bootstrap-server broker:29092 \
           --topic ${KAFKA_TOPIC} \
@@ -43,7 +43,8 @@ services:
           --replication-factor 1 \
           --config cleanup.policy=delete \
           --config retention.ms=1800000 \
-          --if-not-exists
+          --if-not-exists &&
+        echo "Created topic words_data."
       '
 
   schema-registry:
@@ -71,7 +72,7 @@ services:
     volumes:
       - ../dataset-generation/resources:/schemas
     entrypoint: >
-      sh -c '
+      sh -e -c '
         echo "Waiting for Schema Registry..." &&
         until curl -s http://schema-registry:${PORT_SCHEMA_REGISTRY_INTERNAL}/subjects; do
           sleep 2;
@@ -81,7 +82,7 @@ services:
         cat /schemas/dataset_message.avsc &&
         echo "" &&
         
-        ESCAPED_SCHEMA=$$(awk "{print}" ORS="" /schemas/dataset_message.avsc | tr -d "\n\t" | sed "s/\"/\\\\\"/g") &&
+        ESCAPED_SCHEMA=$$(awk "{print}" ORS="" /schemas/dataset_message.avsc | tr -d "\r\n\t" | sed "s/\"/\\\\\"/g") &&
         
         echo "=== final JSON payload ===" &&
         PAYLOAD="{\"schema\":\"$$ESCAPED_SCHEMA\"}" &&
@@ -89,11 +90,10 @@ services:
         echo "" &&
 
         echo "=== Registering schema via REST API ===" &&
-        curl -X POST \
+        curl -f -X POST \
           -H "Content-Type: application/vnd.schemaregistry.v1+json" \
           -d "$$PAYLOAD" \
           http://schema-registry:${PORT_SCHEMA_REGISTRY_INTERNAL}/subjects/${KAFKA_TOPIC}-value/versions
-        echo ""
       '
 
   kafka-ui:
