@@ -51,14 +51,25 @@ services:
     command: >
       "
        mongosh --host mongo1 --port ${PORT_MONGO_DB_PRIMARY_INTERNAL} --eval \"
-         rs.initiate({
-           _id: 'rs0',
-           members: [
-             {_id: 0, host: 'mongo1:${PORT_MONGO_DB_PRIMARY_INTERNAL}', priority: 2},
-             {_id: 1, host: 'mongo2:${PORT_MONGO_DB_SECONDARY_1_INTERNAL}', priority: 1},
-             {_id: 2, host: 'mongo3:${PORT_MONGO_DB_SECONDARY_2_INTERNAL}', priority: 1}
-           ]
-         })
+         try {
+           let status = rs.status();
+           print('Replica set already initialized.');
+         } catch (e) {
+          if (e.message.includes('no replset config has been received')) {
+            print('Initializing replica set...');
+            let res = rs.initiate({
+              _id: 'rs0',
+              members: [
+                {_id: 0, host: 'mongo1:${PORT_MONGO_DB_PRIMARY_INTERNAL}', priority: 2},
+                {_id: 1, host: 'mongo2:${PORT_MONGO_DB_SECONDARY_1_INTERNAL}', priority: 1},
+                {_id: 2, host: 'mongo3:${PORT_MONGO_DB_SECONDARY_2_INTERNAL}', priority: 1}
+              ]
+            });
+            if (res.ok !== 1) { throw new Error('Replica set initiation failed'); }
+          } else {
+            throw e;
+          }
+        }
        \" &&
        echo \"Waiting for primary election...\" &&
        mongosh --host mongo1 --port ${PORT_MONGO_DB_PRIMARY_INTERNAL} --eval \"
@@ -69,23 +80,35 @@ services:
        echo \"Primary elected! Creating users...\" &&
        mongosh --host mongo1 --port ${PORT_MONGO_DB_PRIMARY_INTERNAL} --eval \"
          db = db.getSiblingDB('admin');
-         db.createUser({
-           user: '${MONGO_DB_ROOT_USER}',
-           pwd: '${MONGO_DB_ROOT_PASS}',
-           roles: [
-             { role: 'root', db: 'admin' }
-           ]
-         });
+         let adminUser = db.getUser('${MONGO_DB_ROOT_USER}');
+         if (!adminUser) {
+            print('Creating root user...');
+            db.createUser({
+              user: '${MONGO_DB_ROOT_USER}',
+              pwd: '${MONGO_DB_ROOT_PASS}',
+              roles: [
+                { role: 'root', db: 'admin' }
+              ]
+            });
+         } else {
+            print('Root user already exists.');
+         }
          db = db.getSiblingDB('${MONGO_DB_METADATA_DB_NAME}');
-         db.createUser({
-           user: '${MONGO_DB_METADATA_SERVER_USER}',
-           pwd: '${MONGO_DB_METADATA_SERVER_PASSWORD}',
-           roles: [
-             { role: 'readWrite', db: '${MONGO_DB_METADATA_DB_NAME}' }
-           ]
-         });
+         let appUser = db.getUser('${MONGO_DB_METADATA_SERVER_USER}');
+         if (!appUser) {
+            print('Creating metadata server user...');
+            db.createUser({
+              user: '${MONGO_DB_METADATA_SERVER_USER}',
+              pwd: '${MONGO_DB_METADATA_SERVER_PASSWORD}',
+              roles: [
+                { role: 'readWrite', db: '${MONGO_DB_METADATA_DB_NAME}' }
+              ]
+            });
+          } else {
+           print('Metadata server user already exists.');
+         }
        \" &&
-       echo \"created\""
+       echo \"Completed Mongo init\""
        
 
   mongo-express:
