@@ -12,6 +12,11 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
       - ./mysql-init-files:/docker-entrypoint-initdb.d
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     healthcheck:
       test: ["CMD-SHELL", "mysql -u root -p${MYSQL_ROOT_PASSWORD} -D words -e 'SELECT 1 FROM nodes LIMIT 1;'"]
       interval: 5s

@@ -1,6 +1,11 @@
 services:
   init-infra:
     image: alpine:latest
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     depends_on:
       broker:
         condition: service_healthy
@@ -26,6 +31,11 @@ services:
   
   init-app-services:
     image: alpine:latest
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     depends_on:
       metadata-server:
         condition: service_healthy
@@ -36,6 +46,11 @@ services:
   
   init-debug-ui:
     image: alpine:latest
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     depends_on:
       kafka-ui:
         condition: service_started

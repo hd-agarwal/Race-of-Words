@@ -6,6 +6,11 @@ services:
       - redis-data:/data
     ports:
       - ${PORT_REDIS}:${PORT_REDIS_INTERNAL}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

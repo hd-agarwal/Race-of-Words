@@ -22,6 +22,11 @@ services:
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
     volumes:
       - kafka_data:/var/lib/kafka/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     healthcheck:
       test: ["CMD", "/opt/kafka/bin/kafka-topics.sh", "--list", "--bootstrap-server", "localhost:9092"]
       interval: 20s
@@ -33,6 +38,11 @@ services:
     depends_on:
       broker:
         condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     entrypoint: >
       sh -c '
         echo "Creating Kafka topic..." &&
@@ -58,6 +68,11 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
       SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:${PORT_SCHEMA_REGISTRY_INTERNAL}'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     healthcheck:
       test: ["CMD", "curl", "--output", "/dev/null", "--silent", "--head", "--fail", "http://schema-registry:${PORT_SCHEMA_REGISTRY_INTERNAL}/subjects"]
       interval: 20s
@@ -71,6 +86,11 @@ services:
         condition: service_healthy
     volumes:
       - ../dataset-generation/resources:/schemas
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     entrypoint: >
       sh -e -c '
         echo "Waiting for Schema Registry..." &&
@@ -105,6 +125,11 @@ services:
         condition: service_healthy
     ports:
       - "${PORT_KAFKA_UI}:${PORT_KAFKA_UI_INTERNAL}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     environment:
       DYNAMIC_CONFIG_ENABLED: 'true'
       KAFKA_CLUSTERS_0_NAME: local-cluster

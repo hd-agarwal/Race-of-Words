@@ -35,6 +35,11 @@ services:
 
         - path: ./metadata-server/build/classes/java/main
           action: rebuild
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:${PORT_METADATA_SERVER_INTERNAL}/health-check | grep -i up || exit 1"]
       interval: 5s
@@ -63,6 +68,11 @@ services:
         condition: service_healthy
       schema-registry:
         condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     develop:
       watch:
         - path: ./dataset-generation/main.py
@@ -117,6 +127,11 @@ services:
 
         - path: ./words-server/build/classes/java/main
           action: rebuild
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:${PORT_WORDS_SERVER_INTERNAL}/health-check | grep -i up || exit 1"]
       interval: 5s

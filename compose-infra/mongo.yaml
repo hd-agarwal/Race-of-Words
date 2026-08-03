@@ -6,6 +6,11 @@ services:
       - ${PORT_MONGO_DB_PRIMARY}:${PORT_MONGO_DB_PRIMARY_INTERNAL}
     volumes:
       - "mongo1_data:/data/db"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     healthcheck:
       test: mongosh --port ${PORT_MONGO_DB_PRIMARY_INTERNAL} --eval "db.hello()" --quiet
       interval: 30s
@@ -19,6 +24,11 @@ services:
       - ${PORT_MONGO_DB_SECONDARY_1}:${PORT_MONGO_DB_SECONDARY_1_INTERNAL}
     volumes:
       - "mongo2_data:/data/db"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     healthcheck:
       test: mongosh --port ${PORT_MONGO_DB_SECONDARY_1_INTERNAL} --eval "db.hello()" --quiet
       interval: 31s
@@ -32,6 +42,11 @@ services:
       - ${PORT_MONGO_DB_SECONDARY_2}:${PORT_MONGO_DB_SECONDARY_2_INTERNAL}
     volumes:
       - "mongo3_data:/data/db"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     healthcheck:
       test: mongosh --port ${PORT_MONGO_DB_SECONDARY_2_INTERNAL} --eval "db.hello()" --quiet
       interval: 32s
@@ -48,6 +63,11 @@ services:
       mongo3:
         condition: service_healthy
     entrypoint: [ "/bin/sh", "-c" ]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     command: >
       "
        mongosh --host mongo1 --port ${PORT_MONGO_DB_PRIMARY_INTERNAL} --eval \"
@@ -120,6 +140,11 @@ services:
       ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
     ports:
       - ${PORT_MONGO_EXPRESS}:${PORT_MONGO_EXPRESS_INTERNAL}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "2"
     depends_on:
       mongo1: 
         condition: service_healthy
