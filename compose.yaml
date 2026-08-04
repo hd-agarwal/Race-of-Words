@@ -106,6 +106,8 @@ services:
       - KAFKA_TOPIC=${KAFKA_TOPIC}
       - REDIS_HOST=redis
       - REDIS_PORT=${PORT_REDIS_INTERNAL}
+      - METADATA_SERVER_BASE_URL=http://metadata-server:${PORT_METADATA_SERVER_INTERNAL}
+      - APP_INSTANCE_ID=001
     volumes:
       - ./words-server/.env:/app/.env
     depends_on:
